@@ -176,7 +176,7 @@ class SpecialOAuth2Client extends SpecialPage {
 		}
 
 		$username = ucfirst(JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']));
-		$realname = (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']) . '#' . (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['discriminator']));
+		$realname = (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']) . '#' . (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['discriminator'])));
 		$email = JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['email']);
 		Hooks::run("OAuth2ClientBeforeUserSave", [&$username, &$email, $response]);
 		$userFactory = MediaWiki\MediaWikiServices::getInstance()->getUserFactory();
