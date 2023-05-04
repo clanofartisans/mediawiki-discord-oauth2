@@ -118,7 +118,8 @@ class SpecialOAuth2Client extends SpecialPage {
 
 		$resourceOwner = $this->_provider->getResourceOwner($accessToken);
 		$user = $this->_userHandling( $resourceOwner->toArray() );
-		$user->setCookies();
+		$rememberMe = $wgOAuth2Client['configuration']['remember_me'] ?? false;
+		$user->setCookies(null, null, $rememberMe);
 
 		global $wgOut, $wgRequest;
 		$title = null;
