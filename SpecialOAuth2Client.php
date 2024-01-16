@@ -177,12 +177,21 @@ class SpecialOAuth2Client extends SpecialPage {
 		}
 
 		$username = ucfirst(JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']));
-		
-		$username = ltrim($username, '_');
-		$username = rtrim($username, '_');
-		$username = str_replace( ' ', '_', $username);
-
 		$realname = (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']) . '#' . (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['discriminator'])));
+
+		// MediaWiki specific illegal chars for page names
+		// https://www.mediawiki.org/wiki/Manual:PAGENAMEE_encoding
+		// This should resolve any page title issues with illegal chars in 
+		// usernames. If the username has an illegal char, then this will 
+		// use the combined Discord username + discriminator, and then replace any
+		// illegal chars in the username. This should resolve any username issues
+		// in MediaWiki going forward. 
+		$find_illegal_page_chars = array('#', '<', '>', '[', ']', '_', '{', '|', '}');
+		if( str_replace($find_illegal_page_chars, '', $username) != $username){
+			$username = $realname;
+			$username = str_replace($find_illegal_page_chars, "", $username);
+		};
+		
 		$email = JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['email']);
 		Hooks::run("OAuth2ClientBeforeUserSave", [&$username, &$email, $response]);
 		$userFactory = MediaWiki\MediaWikiServices::getInstance()->getUserFactory();
