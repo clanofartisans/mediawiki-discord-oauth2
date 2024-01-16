@@ -176,9 +176,10 @@ class SpecialOAuth2Client extends SpecialPage {
 			throw new MWException($callback_failure_message);
 		}
 
-		$username = ucfirst(JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']));
+		$usernameActual = ucfirst(JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']));
+		$username = $usernameActual;
 		$realname = (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']) . '#' . (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['discriminator'])));
-
+		
 		// MediaWiki specific illegal chars for page names
 		// https://www.mediawiki.org/wiki/Manual:PAGENAMEE_encoding
 		// This should resolve any page title issues with illegal chars in 
@@ -215,6 +216,8 @@ class SpecialOAuth2Client extends SpecialPage {
 		}
 		$user->setToken();
 
+		wfDebugLog( 'userdebug', "usernameActual: $usernameActual, username: $username,  user: $user" );
+		
 		// Setup the session
 		$wgRequest->getSession()->persist();
 		$user->setCookies($wgRequest, true, true);
