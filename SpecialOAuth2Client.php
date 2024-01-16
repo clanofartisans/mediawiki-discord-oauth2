@@ -176,31 +176,55 @@ class SpecialOAuth2Client extends SpecialPage {
 			throw new MWException($callback_failure_message);
 		}
 
-		$username = ucfirst(JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']));
-		$realname = (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']) . '#' . (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['discriminator'])));
+		$usernameActual = ucfirst(JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']));
+		$username = $usernameActual;
+		$realname = (JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['username']) . '#' . (JsonHelper::ex>
+
+		// MediaWiki specific illegal chars for page names
+		// https://www.mediawiki.org/wiki/Manual:PAGENAMEE_encoding
+		// This should resolve any page title issues with illegal chars in
+		// usernames. If the username has an illegal char, then this will
+		// use the combined Discord username + discriminator, and then replace any
+		// illegal chars in the username. This should resolve any username issues
+		// in MediaWiki going forward.
+		$find_illegal_page_chars = array('#', '<', '>', '[', ']', '_', '{', '|', '}');
+		if( str_replace($find_illegal_page_chars, '', $username) != $username){
+				$username = $realname;
+				$username = str_replace($find_illegal_page_chars, "", $username);
+		};
+
 		$email = JsonHelper::extractValue($response, $wgOAuth2Client['configuration']['email']);
 		Hooks::run("OAuth2ClientBeforeUserSave", [&$username, &$email, $response]);
 		$userFactory = MediaWiki\MediaWikiServices::getInstance()->getUserFactory();
 		$user = $userFactory->newFromName($username, 'creatable');
 
 		if (!$user) {
-			throw new MWException('Could not create user with username:' . $username);
-			die();
+				throw new MWException('Could not create user with username:' . $username);
+				die();
 		}
-		
+
+		if ( !$user->isRegistered() ) {
+				wfDebugLog( 'userdebug', "usernameActual: $usernameActual, username: $username,  proposed new user: $user");
+		}
+
 		$user->setRealName($realname);
 		$user->setEmail($email);
 
 		if ( !( $user instanceof User && $user->getId() ) ) {
-			$user->setName($username);
-			$user->addToDatabase();
-			// MediaWiki recommends below code instead of addToDatabase to create user but it seems to fail.
-			// $authManager = MediaWiki\Auth\AuthManager::singleton();
-			// $authManager->autoCreateUser( $user, MediaWiki\Auth\AuthManager::AUTOCREATE_SOURCE_SESSION );
-			$user->confirmEmail();
+				// $user->setName($username);
+				$user->addToDatabase();
+				wfDebugLog( 'userdebug', "New User found: $user->getName() added to DB." );
+
+				// MediaWiki recommends below code instead of addToDatabase to create user but it seems to fail.
+				// $authManager = MediaWiki\Auth\AuthManager::singleton();
+				// $authManager->autoCreateUser( $user, MediaWiki\Auth\AuthManager::AUTOCREATE_SOURCE_SESSION );
+				$user->confirmEmail();
 		}
 		$user->setToken();
 
+
+		wfDebugLog( 'userdebug', "usernameActual: $usernameActual, username: $username,  user: $user" );
+		
 		// Setup the session
 		$wgRequest->getSession()->persist();
 		$user->setCookies($wgRequest, true, true);
